@@ -6,7 +6,7 @@ function ProductList() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [form, setForm] = useState({ name: '', category: '', price: '' })
+  const [form, setForm] = useState({ name: '', category: '', price: '', stock: '', description: '' })
   const [submitting, setSubmitting] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [editingId, setEditingId] = useState(null)
@@ -58,6 +58,8 @@ function ProductList() {
       name: product.name ?? product.nombre ?? '',
       category: product.category ?? product.categoria ?? '',
       price: product.price ?? product.precio ?? '',
+      stock: product.stock ?? product.stock ?? '',
+      description: product.description ?? product.descripcion ?? ''
     })
     setError('')
     setSuccessMessage('')
@@ -66,7 +68,7 @@ function ProductList() {
 
   const handleCancelEdit = () => {
     setEditingId(null)
-    setForm({ name: '', category: '', price: '' })
+    setForm({ name: '', category: '', price: '', stock: '', description: '' })
     setError('')
     setSuccessMessage('')
   }
@@ -115,13 +117,15 @@ function ProductList() {
       const response = await fetch(
         editingId === null ? PRODUCTS_URL : `${PRODUCTS_URL}/id/${editingId}`,
         {
-        method: editingId === null ? 'POST' : 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: form.name,
-          category: form.category,
-          price: Number(form.price),
-        }),
+          method: editingId === null ? 'POST' : 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: form.name,
+            category: form.category,
+            price: Number(form.price),
+            stock: Number(form.stock),
+            description: form.description,
+          }),
         },
       )
 
@@ -129,7 +133,7 @@ function ProductList() {
         throw new Error(`La API respondió con ${response.status}`)
       }
 
-      setForm({ name: '', category: '', price: '' })
+      setForm({ name: '', category: '', stock: '', price: '', description: '' })
       setSuccessMessage(
         editingId === null
           ? 'Producto creado correctamente.'
@@ -168,6 +172,16 @@ function ProductList() {
           />
         </div>
         <div className="product-form__field">
+          <label htmlFor="stock">Stock</label>
+          <input
+            id="stock"
+            name="stock"
+            value={form.stock}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <div className="product-form__field">
           <label htmlFor="price">Precio</label>
           <input
             id="price"
@@ -176,6 +190,16 @@ function ProductList() {
             min="0"
             step="0.01"
             value={form.price}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <div className="product-form__field">
+          <label htmlFor="description">Descripción</label>
+          <input
+            id="description"
+            name="description"
+            value={form.description}
             onChange={handleChange}
             required
           />
@@ -214,6 +238,7 @@ function ProductList() {
           {products.map((product, index) => {
             const productId = product.id ?? product._id
             const productKey = productId ?? index
+            const productStock = product.stock ?? product._stock
             const productName = product.name ?? product.nombre ?? 'Producto sin nombre'
             const productDescription =
               product.description ?? product.descripcion ?? 'Sin descripción disponible.'
@@ -227,7 +252,9 @@ function ProductList() {
                 <div className="product-card__content">
                   <p className="product-card__eyebrow">{product.category ?? 'Producto'}</p>
                   <h2>{productName}</h2>
-                  <p>{productDescription}</p>
+                  <p>Id: {productId}</p>
+                  <p>Stock: {productStock}</p>
+                  <p>Descripción: {productDescription}</p>
                   {productPrice !== undefined && (
                     <strong className="product-card__price">${productPrice}</strong>
                   )}
