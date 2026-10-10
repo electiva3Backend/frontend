@@ -37,9 +37,9 @@ function ProductApp({ user, onLogout }) {
         <button className={view === 'orders' ? 'catalog-nav__item catalog-nav__item--active' : 'catalog-nav__item'} type="button" onClick={() => setView('orders')}>Órdenes</button>
         <button className={view === 'users' ? 'catalog-nav__item catalog-nav__item--active' : 'catalog-nav__item'} type="button" onClick={() => setView('users')}>Usuarios</button>
       </nav>
-      {view === 'products' && <ProductList />}
+      {view === 'products' && <ProductList user={user} />}
       {view === 'orders' && <OrdersPage user={user} />}
-      {view === 'users' && <UserList />}
+      {view === 'users' && <UserList user={user} />}
     </main>
   )
 }

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 
-const ORDERS_URL = 'http://localhost:8080/api/order'
+const ORDERS_URL = 'http://localhost:8083/api/order'
+const USERS_URL = 'http://localhost:8080/api/user'
+const PRODUCTS_URL = 'http://localhost:8080/api/product'
 const EMPTY_DETAIL = { idProduct: '', quantity: '1' }
 const EMPTY_FILTERS = { orderId: '', userId: '', status: '' }
 const STATUS_LABELS = {
@@ -18,7 +20,7 @@ function getOrderId(order) {
 }
 
 function getOrderUserId(order) {
-  return order.idUser ?? order.userId ?? order.user?.id
+  return order.idUser ?? order.idUSer ?? order.iduser ?? order.userId ?? order.user?.id
 }
 
 function getOrderDetails(order) {
@@ -26,8 +28,15 @@ function getOrderDetails(order) {
   return Array.isArray(details) ? details : []
 }
 
+function getCollection(payload) {
+  if (Array.isArray(payload)) return payload
+  return Array.isArray(payload?.data) ? payload.data : []
+}
+
 function OrdersPage({ user }) {
-  const currentUserId = user?.id ?? user?.idUser ?? user?.idUsuario ?? ''
+  const currentUserId = user?.id ?? ''
+  const isAdmin = String(user?.rol ?? '').toUpperCase() === 'ADMIN'
+  const canViewAllOrders = isAdmin
   const [orders, setOrders] = useState([])
   const [filters, setFilters] = useState(EMPTY_FILTERS)
   const [form, setForm] = useState({
@@ -39,7 +48,48 @@ function OrdersPage({ user }) {
   const [submitting, setSubmitting] = useState(false)
   const [cancellingId, setCancellingId] = useState(null)
   const [error, setError] = useState('')
+  const [referenceError, setReferenceError] = useState('')
+  const [usersById, setUsersById] = useState({})
+  const [productsById, setProductsById] = useState({})
   const [successMessage, setSuccessMessage] = useState('')
+
+  const loadReferenceData = async () => {
+    setReferenceError('')
+
+    try {
+      const [usersResponse, productsResponse] = await Promise.all([
+        fetch(USERS_URL),
+        fetch(PRODUCTS_URL),
+      ])
+      if (!usersResponse.ok) throw await getResponseError(usersResponse)
+      if (!productsResponse.ok) throw await getResponseError(productsResponse)
+
+      const [usersPayload, productsPayload] = await Promise.all([
+        usersResponse.json(),
+        productsResponse.json(),
+      ])
+      const users = getCollection(usersPayload)
+      const products = getCollection(productsPayload)
+
+      setUsersById(Object.fromEntries(users.map((entry) => {
+        const id = entry.id ?? entry.idUser ?? entry.idUsuario
+        const name = [entry.name ?? entry.nombre, entry.lastName ?? entry.apellido]
+          .filter(Boolean)
+          .join(' ')
+        return [id, name]
+      }).filter(([id]) => id !== undefined)))
+      setProductsById(Object.fromEntries(products.map((entry) => {
+        const id = entry.id ?? entry.idProduct ?? entry.idProducto
+        return [id, entry.name ?? entry.nombre]
+      }).filter(([id]) => id !== undefined)))
+    } catch (requestError) {
+      setReferenceError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'No fue posible cargar los nombres de usuarios y productos.',
+      )
+    }
+  }
 
   const loadOrders = async (activeFilters = filters) => {
     setLoading(true)
@@ -50,7 +100,18 @@ function OrdersPage({ user }) {
     const status = activeFilters.status
     let endpoint = ORDERS_URL
 
-    if (orderId) {
+    if (!canViewAllOrders && !currentUserId) {
+      setOrders([])
+      setError('No se pudo identificar al usuario en sesión para cargar sus órdenes.')
+      setLoading(false)
+      return
+    }
+
+    if (!canViewAllOrders && status) {
+      endpoint = `${ORDERS_URL}/userid/${encodeURIComponent(currentUserId)}/status/${encodeURIComponent(status)}`
+    } else if (!canViewAllOrders) {
+      endpoint = `${ORDERS_URL}/userid/${encodeURIComponent(currentUserId)}`
+    } else if (orderId) {
       endpoint = `${ORDERS_URL}/id/${encodeURIComponent(orderId)}`
     } else if (userId && status) {
       endpoint = `${ORDERS_URL}/userid/${encodeURIComponent(userId)}/status/${encodeURIComponent(status)}`
@@ -72,7 +133,14 @@ function OrdersPage({ user }) {
           : payload
             ? [payload]
             : []
-      setOrders(results)
+      const visibleResults = canViewAllOrders
+        ? results
+        : results.filter((order) => String(getOrderUserId(order)) === String(currentUserId))
+      setOrders(
+        orderId
+            ? visibleResults.filter((order) => String(getOrderId(order)) === orderId)
+            : visibleResults,
+      )
     } catch (requestError) {
       setOrders([])
       setError(
@@ -87,6 +155,7 @@ function OrdersPage({ user }) {
 
   useEffect(() => {
     loadOrders()
+    loadReferenceData()
   }, [])
 
   const handleFilterChange = (event) => {
@@ -125,12 +194,18 @@ function OrdersPage({ user }) {
 
   const handleCreateOrder = async (event) => {
     event.preventDefault()
+
+    if (!canViewAllOrders && !currentUserId) {
+      setError('No se pudo identificar al usuario en sesión para crear la orden.')
+      return
+    }
+
     setSubmitting(true)
     setError('')
     setSuccessMessage('')
 
     const payload = {
-      idUser: Number(form.idUser),
+      idUser: Number(canViewAllOrders ? form.idUser : currentUserId),
       information: form.information.trim() || null,
       orderDetails: form.orderDetails.map((detail) => ({
         idProduct: Number(detail.idProduct),
@@ -208,19 +283,21 @@ function OrdersPage({ user }) {
           </div>
         </div>
         <div className="order-form__main-fields">
-          <div className="order-field">
-            <label htmlFor="order-user-id">ID de usuario</label>
-            <input
-              id="order-user-id"
-              name="idUser"
-              type="number"
-              min="1"
-              step="1"
-              value={form.idUser}
-              onChange={handleFormChange}
-              required
-            />
-          </div>
+          {canViewAllOrders && (
+            <div className="order-field">
+              <label htmlFor="order-user-id">ID de usuario</label>
+              <input
+                id="order-user-id"
+                name="idUser"
+                type="number"
+                min="1"
+                step="1"
+                value={form.idUser}
+                onChange={handleFormChange}
+                required
+              />
+            </div>
+          )}
           <div className="order-field order-field--wide">
             <label htmlFor="order-information">Información adicional <span>(opcional)</span></label>
             <input
@@ -325,20 +402,22 @@ function OrdersPage({ user }) {
               placeholder="Ej. 1024"
             />
           </div>
-          <div className="order-field">
-            <label htmlFor="filter-user-id">ID de usuario</label>
-            <input
-              id="filter-user-id"
-              name="userId"
-              type="number"
-              min="1"
-              step="1"
-              value={filters.userId}
-              onChange={handleFilterChange}
-              placeholder="Todos los usuarios"
-              disabled={Boolean(filters.orderId)}
-            />
-          </div>
+          {canViewAllOrders && (
+            <div className="order-field">
+              <label htmlFor="filter-user-id">ID de usuario</label>
+              <input
+                id="filter-user-id"
+                name="userId"
+                type="number"
+                min="1"
+                step="1"
+                value={filters.userId}
+                onChange={handleFilterChange}
+                placeholder="Todos los usuarios"
+                disabled={Boolean(filters.orderId)}
+              />
+            </div>
+          )}
           <div className="order-field">
             <label htmlFor="filter-status">Estado</label>
             <select
@@ -346,7 +425,7 @@ function OrdersPage({ user }) {
               name="status"
               value={filters.status}
               onChange={handleFilterChange}
-              disabled={Boolean(filters.orderId)}
+              disabled={canViewAllOrders && Boolean(filters.orderId)}
             >
               <option value="">Todos los estados</option>
               <option value="CONFIRMED">Confirmada</option>
@@ -364,6 +443,12 @@ function OrdersPage({ user }) {
         <div className="status-message status-message--error" role="alert">
           <p>{error}</p>
           <button type="button" onClick={() => loadOrders(filters)}>Reintentar</button>
+        </div>
+      )}
+      {referenceError && (
+        <div className="status-message status-message--error" role="alert">
+          <p>No se pudieron cargar los nombres de usuarios y productos: {referenceError}</p>
+          <button type="button" onClick={loadReferenceData}>Reintentar</button>
         </div>
       )}
       {loading && <p className="status-message">Cargando órdenes...</p>}
@@ -387,6 +472,7 @@ function OrdersPage({ user }) {
             <tbody>
               {orders.map((order, index) => {
                 const orderId = getOrderId(order)
+                const userId = getOrderUserId(order)
                 const status = String(order.status ?? order.orderStatus ?? '').toUpperCase()
                 const details = getOrderDetails(order)
                 const createdAt = order.createdAt ?? order.creationDate
@@ -402,16 +488,35 @@ function OrdersPage({ user }) {
                 return (
                   <tr key={orderId ?? index}>
                     <td><strong>#{orderId ?? 'N/D'}</strong></td>
-                    <td>{getOrderUserId(order) ?? '—'}</td>
+                    <td>
+                      {order.userName ?? order.user?.name ?? usersById[userId] ??
+                        (userId !== undefined ? `Usuario #${userId}` : '—')}
+                    </td>
                     <td>
                       {details.length > 0 ? (
                         <ul className="order-product-list">
-                          {details.map((detail, detailIndex) => (
-                            <li key={detail.id ?? detailIndex}>
-                              Producto #{detail.idProduct ?? detail.productId ?? detail.product?.id ?? '—'}
-                              <span> × {detail.quantity ?? '—'}</span>
-                            </li>
-                          ))}
+                          {details.map((detail, detailIndex) => {
+                            const productId = detail && typeof detail === 'object'
+                              ? detail.idProduct ?? detail.productId ?? detail.product?.id
+                              : undefined
+                            const productName = productId !== undefined
+                              ? productsById[productId] ?? detail.product?.name
+                              : undefined
+                            const productLabel = productId !== undefined
+                              ? `${productName ?? `Producto #${productId}`} (#${productId})`
+                              : typeof detail === 'number'
+                                ? `Detalle #${detail} (sin datos del producto)`
+                                : 'Producto no disponible'
+
+                            return (
+                              <li key={detail?.id ?? detailIndex}>
+                                {productLabel}
+                                {detail && typeof detail === 'object' && (
+                                  <span> × {detail.quantity ?? '—'}</span>
+                                )}
+                              </li>
+                            )
+                          })}
                         </ul>
                       ) : '—'}
                     </td>

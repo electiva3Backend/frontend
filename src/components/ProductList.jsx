@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 const PRODUCTS_URL = 'http://localhost:8080/api/product'
 
-function ProductList() {
+function ProductList({user}) {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -11,6 +11,8 @@ function ProductList() {
   const [successMessage, setSuccessMessage] = useState('')
   const [editingId, setEditingId] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
+  const isAdmin = user?.rol === 'ADMIN'
+
 
   const loadProducts = async () => {
     setLoading(true)
@@ -156,6 +158,7 @@ function ProductList() {
 
   return (
     <>
+    {isAdmin && (
       <form className="product-form" onSubmit={handleSubmit}>
         <div className="product-form__field">
           <label htmlFor="name">Nombre</label>
@@ -218,7 +221,7 @@ function ProductList() {
             </button>
           )}
         </div>
-      </form>
+      </form>)}
 
       {successMessage && <p className="form-message">{successMessage}</p>}
       {error && (
@@ -260,22 +263,24 @@ function ProductList() {
                   )}
                   {productId !== undefined && (
                     <div className="product-card__actions">
-                      <button
-                        type="button"
-                        className="button-edit"
-                        onClick={() => handleEdit(product)}
-                        disabled={deletingId !== null}
-                      >
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          className="button-edit"
+                          onClick={() => handleEdit(product)}
+                          disabled={deletingId !== null}
+                        >
                         Editar
-                      </button>
-                      <button
-                        type="button"
-                        className="button-delete"
-                        onClick={() => handleDelete(productId)}
-                        disabled={deletingId !== null}
-                      >
+                      </button>)}
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          className="button-delete"
+                          onClick={() => handleDelete(productId)}
+                          disabled={deletingId !== null}
+                        >
                         {deletingId === productId ? 'Eliminando...' : 'Eliminar'}
-                      </button>
+                      </button>)}
                     </div>
                   )}
                 </div>
