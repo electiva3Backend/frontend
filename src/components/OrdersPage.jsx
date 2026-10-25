@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-const ORDERS_URL = 'http://localhost:8083/api/order'
+const ORDERS_URL = 'http://localhost:8080/api/order'
 const USERS_URL = 'http://localhost:8080/api/user'
 const PRODUCTS_URL = 'http://localhost:8080/api/product'
 const EMPTY_DETAIL = { idProduct: '', quantity: '1' }
