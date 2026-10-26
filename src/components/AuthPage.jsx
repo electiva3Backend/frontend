@@ -59,10 +59,10 @@ function AuthPage({ onAuthenticated }) {
         throw new Error(responseMessage || `La API respondió con ${response.status}`)
       }
 
-      const user = await response.json()
+      const data = await response.json()
 
       if (isLogin) {
-        onAuthenticated(user)
+        onAuthenticated(data)
       } else {
         setLoginForm({ email: registerForm.email, password: registerForm.password })
         setMode('login')

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { authenticatedFetch } from '../api'
 
 const ORDERS_URL = 'http://localhost:8080/api/order'
 const USERS_URL = 'http://localhost:8080/api/user'
@@ -33,7 +34,7 @@ function getCollection(payload) {
   return Array.isArray(payload?.data) ? payload.data : []
 }
 
-function OrdersPage({ user }) {
+function OrdersPage({ user, accessToken, tokenType, onUnauthorized }) {
   const currentUserId = user?.id ?? ''
   const isAdmin = String(user?.rol ?? '').toUpperCase() === 'ADMIN'
   const canViewAllOrders = isAdmin
@@ -58,8 +59,8 @@ function OrdersPage({ user }) {
 
     try {
       const [usersResponse, productsResponse] = await Promise.all([
-        fetch(USERS_URL),
-        fetch(PRODUCTS_URL),
+        authenticatedFetch(USERS_URL, {}, { accessToken, tokenType, onUnauthorized }),
+        authenticatedFetch(PRODUCTS_URL, {}, { accessToken, tokenType, onUnauthorized }),
       ])
       if (!usersResponse.ok) throw await getResponseError(usersResponse)
       if (!productsResponse.ok) throw await getResponseError(productsResponse)
@@ -122,7 +123,11 @@ function OrdersPage({ user }) {
     }
 
     try {
-      const response = await fetch(endpoint)
+      const response = await authenticatedFetch(endpoint, {}, {
+        accessToken,
+        tokenType,
+        onUnauthorized,
+      })
       if (!response.ok) throw await getResponseError(response)
 
       const payload = await response.json()
@@ -214,11 +219,15 @@ function OrdersPage({ user }) {
     }
 
     try {
-      const response = await fetch(ORDERS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
+      const response = await authenticatedFetch(
+        ORDERS_URL,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        },
+        { accessToken, tokenType, onUnauthorized },
+      )
       if (!response.ok) throw await getResponseError(response)
 
       setForm({
@@ -247,9 +256,11 @@ function OrdersPage({ user }) {
     setSuccessMessage('')
 
     try {
-      const response = await fetch(`${ORDERS_URL}/id/${encodeURIComponent(orderId)}`, {
-        method: 'PUT',
-      })
+      const response = await authenticatedFetch(
+        `${ORDERS_URL}/id/${encodeURIComponent(orderId)}`,
+        { method: 'PUT' },
+        { accessToken, tokenType, onUnauthorized },
+      )
       if (!response.ok) throw await getResponseError(response)
 
       setSuccessMessage(`La orden #${orderId} se canceló correctamente.`)

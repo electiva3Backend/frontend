@@ -3,7 +3,7 @@ import ProductList from './components/ProductList'
 import UserList from './components/UserList'
 import OrdersPage from './components/OrdersPage'
 
-function ProductApp({ user, onLogout }) {
+function ProductApp({ user, accessToken, tokenType, onLogout }) {
   const [view, setView] = useState('products')
   const viewCopy = {
     products: {
@@ -37,9 +37,30 @@ function ProductApp({ user, onLogout }) {
         <button className={view === 'orders' ? 'catalog-nav__item catalog-nav__item--active' : 'catalog-nav__item'} type="button" onClick={() => setView('orders')}>Órdenes</button>
         <button className={view === 'users' ? 'catalog-nav__item catalog-nav__item--active' : 'catalog-nav__item'} type="button" onClick={() => setView('users')}>Usuarios</button>
       </nav>
-      {view === 'products' && <ProductList user={user} />}
-      {view === 'orders' && <OrdersPage user={user} />}
-      {view === 'users' && <UserList user={user} />}
+      {view === 'products' && (
+        <ProductList
+          user={user}
+          accessToken={accessToken}
+          tokenType={tokenType}
+          onUnauthorized={onLogout}
+        />
+      )}
+      {view === 'orders' && (
+        <OrdersPage
+          user={user}
+          accessToken={accessToken}
+          tokenType={tokenType}
+          onUnauthorized={onLogout}
+        />
+      )}
+      {view === 'users' && (
+        <UserList
+          user={user}
+          accessToken={accessToken}
+          tokenType={tokenType}
+          onUnauthorized={onLogout}
+        />
+      )}
     </main>
   )
 }

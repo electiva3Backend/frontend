@@ -1,28 +1,37 @@
-import { useState } from 'react'
-import AuthPage from './components/AuthPage'
-import ProductApp from './ProductApp'
-import './App.css'
+import { useState } from "react";
+import AuthPage from "./components/AuthPage";
+import ProductApp from "./ProductApp";
+import "./App.css";
 
 function App() {
-  const [user, setUser] = useState(() => {
+  const [auth, setAuth] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('inventory-user'))
+      return JSON.parse(localStorage.getItem("inventory-auth"));
     } catch {
-      return null
+      return null;
     }
-  })
+  });
 
-  const handleAuthenticated = (authenticatedUser) => {
-    localStorage.setItem('inventory-user', JSON.stringify(authenticatedUser))
-    setUser(authenticatedUser)
-  }
+  const handleAuthenticated = (authResponse) => {
+    localStorage.setItem("inventory-auth", JSON.stringify(authResponse));
+    setAuth(authResponse);
+  };
 
   const handleLogout = () => {
-    localStorage.removeItem('inventory-user')
-    setUser(null)
-  }
+    localStorage.removeItem("inventory-auth");
+    setAuth(null);
+  };
 
-  return user ? <ProductApp user={user} onLogout={handleLogout} /> : <AuthPage onAuthenticated={handleAuthenticated} />
+return auth ? (
+  <ProductApp
+    user={auth.user}
+    accessToken={auth.accessToken}
+    tokenType={auth.tokenType}
+    onLogout={handleLogout}
+  />
+) : (
+  <AuthPage onAuthenticated={handleAuthenticated} />
+)
 }
 
-export default App
+export default App;

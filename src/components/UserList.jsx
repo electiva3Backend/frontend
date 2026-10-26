@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { authenticatedFetch } from '../api'
 
 const USERS_URL = 'http://localhost:8080/api/user'
 
@@ -21,7 +22,7 @@ function createUserForm(user = {}) {
   }
 }
 
-function UserList({ user = {} }) {
+function UserList({ user = {}, accessToken, tokenType, onUnauthorized }) {
   const currentUserId = user.id ?? user.idUser ?? user.idUsuario
   const isAdmin = String(user.role ?? user.rol ?? '').toUpperCase() === 'ADMIN'
   const canEditOwnUser = currentUserId !== undefined && currentUserId !== null && currentUserId !== ''
@@ -44,7 +45,11 @@ function UserList({ user = {} }) {
       const endpoint = isAdmin || !canEditOwnUser
         ? USERS_URL
         : `${USERS_URL}/id/${encodeURIComponent(currentUserId)}`
-      const response = await fetch(endpoint)
+      const response = await authenticatedFetch(endpoint, {}, {
+        accessToken,
+        tokenType,
+        onUnauthorized,
+      })
       if (!response.ok) throw new Error(`La API respondió con ${response.status}`)
 
       const payload = await response.json()
@@ -111,7 +116,11 @@ function UserList({ user = {} }) {
     setSuccessMessage('')
 
     try {
-      const response = await fetch(`${USERS_URL}/id/${userId}`, { method: 'DELETE' })
+      const response = await authenticatedFetch(
+        `${USERS_URL}/id/${userId}`,
+        { method: 'DELETE' },
+        { accessToken, tokenType, onUnauthorized },
+      )
       if (!response.ok) throw new Error(`La API respondió con ${response.status}`)
 
       if (editingId === userId) handleCancelEdit()
@@ -146,13 +155,14 @@ function UserList({ user = {} }) {
 
     try {
       const isEditing = editingId !== null
-      const response = await fetch(
+      const response = await authenticatedFetch(
         isEditing ? `${USERS_URL}/id/${editingId}` : USERS_URL,
         {
           method: isEditing ? 'PUT' : 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         },
+        { accessToken, tokenType, onUnauthorized },
       )
       if (!response.ok) {
         const responseMessage = await response.text()

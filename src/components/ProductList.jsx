@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
+import { authenticatedFetch } from '../api'
 
 const PRODUCTS_URL = 'http://localhost:8080/api/product'
 
-function ProductList({user}) {
+function ProductList({ user, accessToken, tokenType, onUnauthorized }) {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -19,7 +20,11 @@ function ProductList({user}) {
     setError('')
 
     try {
-      const response = await fetch(PRODUCTS_URL)
+      const response = await authenticatedFetch(PRODUCTS_URL, {}, {
+        accessToken,
+        tokenType,
+        onUnauthorized,
+      })
 
       if (!response.ok) {
         throw new Error(`La API respondió con ${response.status}`)
@@ -85,9 +90,11 @@ function ProductList({user}) {
     setSuccessMessage('')
 
     try {
-      const response = await fetch(`${PRODUCTS_URL}/id/${productId}`, {
-        method: 'DELETE',
-      })
+      const response = await authenticatedFetch(
+        `${PRODUCTS_URL}/id/${productId}`,
+        { method: 'DELETE' },
+        { accessToken, tokenType, onUnauthorized },
+      )
 
       if (!response.ok) {
         throw new Error(`La API respondió con ${response.status}`)
@@ -116,7 +123,7 @@ function ProductList({user}) {
     setSuccessMessage('')
 
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         editingId === null ? PRODUCTS_URL : `${PRODUCTS_URL}/id/${editingId}`,
         {
           method: editingId === null ? 'POST' : 'PUT',
@@ -129,6 +136,7 @@ function ProductList({user}) {
             description: form.description,
           }),
         },
+        { accessToken, tokenType, onUnauthorized },
       )
 
       if (!response.ok) {
