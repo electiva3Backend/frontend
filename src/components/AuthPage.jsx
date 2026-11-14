@@ -1,6 +1,9 @@
 import { useState } from 'react'
+import { API_URL } from '../config'
 
-const USER_URL = 'http://localhost:8080/api/user'
+const USER_URL = `${API_URL}/api/user`
+
+// const USER_URL = 'http://localhost:8080/api/user'
 
 const initialLoginForm = { email: '', password: '' }
 const initialRegisterForm = {
