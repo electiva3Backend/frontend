@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { authenticatedFetch } from '../api'
+import { API_URL } from '../config'
 
-const PRODUCTS_URL = 'http://localhost:8080/api/product'
+const PRODUCTS_URL = `${API_URL}/api/product`
+
+// const PRODUCTS_URL = 'http://localhost:8080/api/product'
 
 function ProductList({ user, accessToken, tokenType, onUnauthorized }) {
   const [products, setProducts] = useState([])

@@ -1,9 +1,15 @@
 import { useEffect, useState } from 'react'
 import { authenticatedFetch } from '../api'
+import { API_URL } from '../config'
 
-const ORDERS_URL = 'http://localhost:8080/api/order'
-const USERS_URL = 'http://localhost:8080/api/user'
-const PRODUCTS_URL = 'http://localhost:8080/api/product'
+const ORDERS_URL = `${API_URL}/api/order`
+const USERS_URL = `${API_URL}/api/user`
+const PRODUCTS_URL = `${API_URL}/api/product`
+
+// const ORDERS_URL = 'http://localhost:8080/api/order'
+// const USERS_URL = 'http://localhost:8080/api/user'
+// const PRODUCTS_URL = 'http://localhost:8080/api/product'
+
 const EMPTY_DETAIL = { idProduct: '', quantity: '1' }
 const EMPTY_FILTERS = { orderId: '', userId: '', status: '' }
 const STATUS_LABELS = {

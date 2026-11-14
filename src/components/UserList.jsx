@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { authenticatedFetch } from '../api'
+import { API_URL } from '../config'
 
-const USERS_URL = 'http://localhost:8080/api/user'
+const USERS_URL = `${API_URL}/api/user`
+
+// const USERS_URL = 'http://localhost:8080/api/user'
 
 function createEmptyUserForm() {
   return { email: '', password: '', name: '', lastName: '', age: '', role: 'USER' }
